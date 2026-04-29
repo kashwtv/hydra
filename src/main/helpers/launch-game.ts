@@ -27,6 +27,28 @@ export interface LaunchGameOptions {
 const isWindowsExecutable = (executablePath: string) =>
   path.extname(executablePath).toLowerCase() === ".exe";
 
+const isMacAppBundle = (executablePath: string) =>
+  path.extname(executablePath).toLowerCase() === ".app";
+
+const launchMacAppBundle = (
+  executablePath: string,
+  launchOptions?: string | null
+) => {
+  const args = ["-a", executablePath];
+
+  if (launchOptions && launchOptions.trim().length > 0) {
+    args.push("--args", ...launchOptions.trim().split(/\s+/));
+  }
+
+  const processRef = spawn("open", args, {
+    shell: false,
+    detached: true,
+    stdio: "ignore",
+  });
+
+  processRef.unref();
+};
+
 const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
@@ -280,6 +302,11 @@ export const launchGame = async (options: LaunchGameOptions): Promise<void> => {
     }
 
     launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+    return;
+  }
+
+  if (process.platform === "darwin" && isMacAppBundle(parsedPath)) {
+    launchMacAppBundle(parsedPath, launchOptions);
     return;
   }
 

@@ -10,6 +10,7 @@ import {
   WindowManager,
   Lock,
   PowerSaveBlockerManager,
+  ApplicationMenu,
 } from "@main/services";
 import resources from "@locales";
 import { PythonRPC } from "./services/python-rpc";
@@ -61,6 +62,8 @@ if (process.defaultApp) {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("gg.hydralauncher.hydra");
+
+  ApplicationMenu.setup();
 
   protocol.handle("local", (request) => {
     const filePath = request.url.slice("local:".length);
@@ -270,6 +273,9 @@ app.on("open-url", (_event, url) => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   WindowManager.mainWindow = null;
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 let canAppBeClosed = false;

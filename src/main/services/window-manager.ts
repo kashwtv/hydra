@@ -36,21 +36,37 @@ export class WindowManager {
 
   private static readonly editorWindows: Map<string, BrowserWindow> = new Map();
 
+  private static getMainWindowTitleBarStyle():
+    | "default"
+    | "hidden"
+    | "hiddenInset"
+    | "customButtonsOnHover" {
+    if (process.platform === "linux") return "default";
+    if (process.platform === "darwin") return "hiddenInset";
+    return "hidden";
+  }
+
   private static initialConfigInitializationMainWindow: Electron.BrowserWindowConstructorOptions =
     {
       width: 1200,
       height: 860,
       minWidth: 1024,
       minHeight: 860,
-      backgroundColor: "#1c1c1c",
-      titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+      backgroundColor: process.platform === "darwin" ? "#00000000" : "#1c1c1c",
+      titleBarStyle: WindowManager.getMainWindowTitleBarStyle(),
       icon,
-      trafficLightPosition: { x: 16, y: 16 },
-      titleBarOverlay: {
-        symbolColor: "#DADBE1",
-        color: "#00000000",
-        height: 34,
-      },
+      trafficLightPosition: { x: 16, y: 18 },
+      titleBarOverlay:
+        process.platform === "darwin"
+          ? undefined
+          : {
+              symbolColor: "#DADBE1",
+              color: "#00000000",
+              height: 34,
+            },
+      vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+      visualEffectState: process.platform === "darwin" ? "active" : undefined,
+      transparent: process.platform === "darwin",
       webPreferences: {
         preload: path.join(__dirname, "../preload/index.mjs"),
         sandbox: false,
@@ -224,7 +240,9 @@ export class WindowManager {
     const initialHash = userPreferences?.launchToLibraryPage ? "library" : "";
 
     this.loadMainWindowURL(initialHash);
-    this.mainWindow.removeMenu();
+    if (process.platform !== "darwin") {
+      this.mainWindow.removeMenu();
+    }
 
     this.mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
@@ -536,15 +554,22 @@ export class WindowManager {
         height: 720,
         minWidth: 600,
         minHeight: 540,
-        backgroundColor: "#1c1c1c",
-        titleBarStyle: process.platform === "linux" ? "default" : "hidden",
+        backgroundColor:
+          process.platform === "darwin" ? "#00000000" : "#1c1c1c",
+        titleBarStyle: WindowManager.getMainWindowTitleBarStyle(),
         icon,
-        trafficLightPosition: { x: 16, y: 16 },
-        titleBarOverlay: {
-          symbolColor: "#DADBE1",
-          color: "#151515",
-          height: 34,
-        },
+        trafficLightPosition: { x: 16, y: 18 },
+        titleBarOverlay:
+          process.platform === "darwin"
+            ? undefined
+            : {
+                symbolColor: "#DADBE1",
+                color: "#151515",
+                height: 34,
+              },
+        vibrancy: process.platform === "darwin" ? "under-window" : undefined,
+        visualEffectState:
+          process.platform === "darwin" ? "active" : undefined,
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
@@ -554,7 +579,9 @@ export class WindowManager {
 
       this.editorWindows.set(themeId, editorWindow);
 
-      editorWindow.removeMenu();
+      if (process.platform !== "darwin") {
+        editorWindow.removeMenu();
+      }
 
       this.loadWindowURL(editorWindow, `theme-editor?themeId=${themeId}`);
 

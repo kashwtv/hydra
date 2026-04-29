@@ -331,6 +331,17 @@ export class PythonRPC {
         throw new Error(`Hydra Python RPC binary not found at ${binaryPath}`);
       }
 
+      if (process.platform === "darwin" || process.platform === "linux") {
+        try {
+          fs.chmodSync(binaryPath, 0o755);
+        } catch (error) {
+          pythonRpcLogger.warn(
+            "Failed to set executable permissions on Python RPC binary",
+            error
+          );
+        }
+      }
+
       const childProcess = cp.spawn(binaryPath, commonArgs, {
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],

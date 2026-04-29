@@ -233,6 +233,22 @@ export const watchProcesses = async () => {
 
     let hasProcess = processMap.get(executable)?.has(executablePath) ?? false;
 
+    if (!hasProcess && platform === "darwin") {
+      const appBundleBinary = executable.replace(/\.app$/i, "");
+      hasProcess = (processMap.get(appBundleBinary)?.size ?? 0) > 0;
+
+      if (!hasProcess) {
+        const innerBinaryPath = path.join(
+          executablePath,
+          "Contents",
+          "MacOS",
+          executablePath.split("/").at(-1)?.replace(/\.app$/i, "") ?? ""
+        );
+        hasProcess =
+          processMap.get(appBundleBinary)?.has(innerBinaryPath) ?? false;
+      }
+    }
+
     if (!hasProcess && platform === "linux") {
       hasProcess = hasLinuxCompatibilityProcessMatch(
         game,

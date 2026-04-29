@@ -45,6 +45,11 @@ if (process.platform === 'linux' && workerData.addonDir) {
     ? workerData.addonDir + ':' + process.env.LD_LIBRARY_PATH
     : workerData.addonDir;
 }
+if (process.platform === 'darwin' && workerData.addonDir) {
+  process.env.DYLD_FALLBACK_LIBRARY_PATH = process.env.DYLD_FALLBACK_LIBRARY_PATH
+    ? workerData.addonDir + ':' + process.env.DYLD_FALLBACK_LIBRARY_PATH
+    : workerData.addonDir;
+}
 const addon = require(workerData.addonPath);
 const platform = process.platform;
 
@@ -132,6 +137,13 @@ export class NativeAddon {
     if (process.platform === "linux") {
       process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
         ? `${addonDir}:${process.env.LD_LIBRARY_PATH}`
+        : addonDir;
+    }
+
+    if (process.platform === "darwin") {
+      process.env.DYLD_FALLBACK_LIBRARY_PATH = process.env
+        .DYLD_FALLBACK_LIBRARY_PATH
+        ? `${addonDir}:${process.env.DYLD_FALLBACK_LIBRARY_PATH}`
         : addonDir;
     }
 

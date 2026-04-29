@@ -41,6 +41,11 @@ nsis:
 portable:
   artifactName: ${name}-${version}-portable.${ext}
 mac:
+  category: public.app-category.entertainment
+  darkModeSupport: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extraResources:
     - from: binaries/7zz
@@ -49,9 +54,17 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    - LSApplicationCategoryType: public.app-category.entertainment
+    - CFBundleURLTypes:
+        - CFBundleURLName: Hydra Launcher Protocol
+          CFBundleURLSchemes:
+            - hydralauncher
   notarize: false
   target:
-    - dmg
+    - target: dmg
+      arch:
+        - arm64
+        - x64
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:

@@ -351,6 +351,7 @@ export function Header() {
         className={cn("header", {
           "header--dragging-disabled": draggingDisabled,
           "header--is-windows": window.electron.platform === "win32",
+          "header--is-darwin": window.electron.platform === "darwin",
         })}
       >
         <section className="header__section header__section--left">

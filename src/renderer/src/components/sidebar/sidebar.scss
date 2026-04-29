@@ -18,6 +18,10 @@
 
   &--darwin {
     padding-top: calc(globals.$spacing-unit * 6);
+    background-color: transparent;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right-color: rgba(255, 255, 255, 0.08);
   }
 
   &__content {
