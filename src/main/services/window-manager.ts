@@ -567,8 +567,7 @@ export class WindowManager {
                 height: 34,
               },
         vibrancy: process.platform === "darwin" ? "under-window" : undefined,
-        visualEffectState:
-          process.platform === "darwin" ? "active" : undefined,
+        visualEffectState: process.platform === "darwin" ? "active" : undefined,
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
