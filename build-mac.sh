@@ -69,18 +69,27 @@ source "$HOME/.cargo/env" 2>/dev/null || true
 ok "Rust $(rustc --version)"
 
 # ── 5. Python 3 ───────────────────────────────
+# cx_Freeze 7.x requires Python 3.10+ — skip macOS system Python 3.9
 log "Checking Python..."
 PYTHON=""
-for cmd in python3 python; do
-  if command -v "$cmd" &>/dev/null && "$cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3,9) else 1)" 2>/dev/null; then
+for cmd in python3.13 python3.12 python3.11 python3.10; do
+  if command -v "$cmd" &>/dev/null; then
     PYTHON="$cmd"
     break
   fi
 done
+# Also check generic python3 if it's 3.10+
+if [[ -z "$PYTHON" ]] && command -v python3 &>/dev/null; then
+  if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
+    PYTHON="python3"
+  fi
+fi
 if [[ -z "$PYTHON" ]]; then
-  warn "Python 3.9+ not found – installing via brew..."
-  brew install python@3.9
-  PYTHON="python3.9"
+  warn "Python 3.10+ not found – installing via brew..."
+  brew install python@3.11
+  export PATH="/opt/homebrew/opt/python@3.11/bin:$PATH"
+  export PATH="/usr/local/opt/python@3.11/bin:$PATH"
+  PYTHON="python3.11"
 fi
 ok "Python $($PYTHON --version)"
 
