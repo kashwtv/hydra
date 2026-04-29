@@ -20,6 +20,7 @@ const initialState: CatalogueSearchState = {
     developers: [],
     protondbSupportBadges: [],
     deckCompatibility: [],
+    macosSupported: undefined,
   },
   steamUserTags: {},
   steamGenres: {},

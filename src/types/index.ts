@@ -442,6 +442,7 @@ export interface CatalogueSearchPayload {
   )[];
   deckCompatibility: ("verified" | "playable" | "unsupported" | "unknown")[];
   releaseYear?: { gte?: number; lte?: number };
+  macosSupported?: boolean;
 }
 
 export interface ProtonDBData {

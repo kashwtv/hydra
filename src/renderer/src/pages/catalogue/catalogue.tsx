@@ -33,6 +33,11 @@ const ProtonCompatibilitySection = lazy(async () => {
   return { default: mod.ProtonCompatibilitySection };
 });
 
+const MacCompatibilitySection = lazy(async () => {
+  const mod = await import("./mac-compatibility-section");
+  return { default: mod.MacCompatibilitySection };
+});
+
 const ReleaseYearSection = lazy(async () => {
   const mod = await import("./release-year-section");
   return { default: mod.ReleaseYearSection };
@@ -56,6 +61,7 @@ const filterCategoryColors = {
   protondbSupportBadges: "#F50057",
   deckCompatibility: "#F50057",
   releaseYear: "hsl(38deg 50% 40%)",
+  macosSupported: "hsl(212deg 60% 45%)",
 };
 
 const PAGE_SIZE = 20;
@@ -69,6 +75,7 @@ const clearAllCategoryFilters = {
   protondbSupportBadges: [],
   deckCompatibility: [],
   releaseYear: undefined,
+  macosSupported: undefined,
 };
 
 const protonCompatibilityThresholds: CompatibilityThreshold<
@@ -130,6 +137,7 @@ export default function Catalogue() {
 
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
+  const shouldShowMacFeatures = window.electron.platform === "darwin";
 
   const debouncedSearch = useRef(
     debounce(
@@ -327,6 +335,18 @@ export default function Catalogue() {
             },
           ]
         : []),
+
+      ...(shouldShowMacFeatures && filters.macosSupported
+        ? [
+            {
+              label: t("macos_native_supported"),
+              filterType: t("macos_compatibility"),
+              orbColor: filterCategoryColors.macosSupported,
+              key: "macosSupported",
+              value: "boolean",
+            },
+          ]
+        : []),
     ];
   }, [
     filters,
@@ -335,6 +355,7 @@ export default function Catalogue() {
     steamGenresMapping,
     language,
     shouldShowProtonFeatures,
+    shouldShowMacFeatures,
     t,
   ]);
 
@@ -427,6 +448,11 @@ export default function Catalogue() {
                       return;
                     }
 
+                    if (filter.value === "boolean") {
+                      dispatch(setFilters({ [filter.key]: undefined }));
+                      return;
+                    }
+
                     dispatch(
                       setFilters({
                         [filter.key]: filters[filter.key].filter(
@@ -493,6 +519,20 @@ export default function Catalogue() {
 
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
+            {shouldShowMacFeatures && (
+              <Suspense fallback={null}>
+                <MacCompatibilitySection
+                  color={filterCategoryColors.macosSupported}
+                  checked={filters.macosSupported === true}
+                  onChange={(checked) =>
+                    dispatch(
+                      setFilters({ macosSupported: checked || undefined })
+                    )
+                  }
+                />
+              </Suspense>
+            )}
+
             {shouldShowProtonFeatures && (
               <Suspense fallback={null}>
                 <ProtonCompatibilitySection

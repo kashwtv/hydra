@@ -177,7 +177,10 @@
     "release_year": "Release Year",
     "filter_by_release_year": "Filter by release year",
     "release_year_gte": "Release year from",
-    "release_year_lte": "Release year to"
+    "release_year_lte": "Release year to",
+    "macos_compatibility": "macOS Compatibility",
+    "macos_native_support_label": "Native macOS support",
+    "macos_native_supported": "Runs natively on macOS"
   },
   "game_details": {
     "open_download_options": "Open download options",
