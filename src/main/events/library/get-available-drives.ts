@@ -112,6 +112,30 @@ async function queryLinuxDrives(): Promise<DriveInfo[]> {
     .map((drive) => ({ ...drive, label: drive.root }));
 }
 
+async function queryMacOSDrives(): Promise<DriveInfo[]> {
+  const volumesDir = "/Volumes";
+  try {
+    const entries = await fs.readdir(volumesDir, { withFileTypes: true });
+    const mountPoints = entries
+      .filter((e) => e.isDirectory() || e.isSymbolicLink())
+      .map((e) => `${volumesDir}/${e.name}`);
+
+    const driveChecks = mountPoints.map((mountPoint) =>
+      getDriveInfo(mountPoint)
+    );
+    const drives = await Promise.all(driveChecks);
+
+    return drives
+      .filter((drive): drive is DriveInfo => drive !== null)
+      .map((drive) => ({
+        ...drive,
+        label: drive.root.split("/").at(-1) ?? drive.root,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 const getAvailableDrives = async (): Promise<DriveInfo[]> => {
   console.log("getAvailableDrives called, platform:", process.platform);
 
@@ -124,6 +148,12 @@ const getAvailableDrives = async (): Promise<DriveInfo[]> => {
 
     if (process.platform === "linux") {
       const drives = await queryLinuxDrives();
+      console.log("Parsed drives:", drives.length, "drives found");
+      return drives;
+    }
+
+    if (process.platform === "darwin") {
+      const drives = await queryMacOSDrives();
       console.log("Parsed drives:", drives.length, "drives found");
       return drives;
     }

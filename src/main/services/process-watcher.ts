@@ -79,6 +79,8 @@ const getGameExecutables = async () => {
           return executable.os === "win32";
         } else if (platform === "linux") {
           return executable.os === "linux" || executable.os === "win32";
+        } else if (platform === "darwin") {
+          return executable.os === "darwin";
         }
 
         return false;

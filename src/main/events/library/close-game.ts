@@ -31,6 +31,14 @@ const closeGame = async (
       return runningProcess.name === game.executablePath?.split("/").at(-1);
     }
 
+    if (process.platform === "darwin") {
+      const execName = game.executablePath
+        ?.split("/")
+        .at(-1)
+        ?.replace(/\.app$/i, "");
+      return runningProcess.name === execName;
+    }
+
     return runningProcess.exe === game.executablePath;
   });
 
