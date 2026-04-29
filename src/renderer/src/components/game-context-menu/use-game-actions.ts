@@ -179,6 +179,23 @@ export function useGameActions(game: LibraryGame) {
     }
   };
 
+  const handleDeleteSteamShortcut = async () => {
+    try {
+      setCreatingSteamShortcut(true);
+      await window.electron.deleteSteamShortcut(game.shop, game.objectId);
+
+      showSuccessToast(
+        t("delete_shortcut_success"),
+        t("you_might_need_to_restart_steam")
+      );
+    } catch (error) {
+      logger.error("Failed to delete Steam shortcut", error);
+      showErrorToast(t("delete_shortcut_error"));
+    } finally {
+      setCreatingSteamShortcut(false);
+    }
+  };
+
   const handleOpenFolder = async () => {
     try {
       await window.electron.openGameExecutablePath(game.shop, game.objectId);
@@ -291,6 +308,7 @@ export function useGameActions(game: LibraryGame) {
     handleToggleFavorite,
     handleCreateShortcut,
     handleCreateSteamShortcut,
+    handleDeleteSteamShortcut,
     handleOpenFolder,
     handleOpenDownloadOptions,
     handleOpenDownloadLocation,

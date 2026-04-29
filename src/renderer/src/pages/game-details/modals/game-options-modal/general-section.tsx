@@ -487,7 +487,7 @@ export function GeneralSettingsSection({
                   disabled={creatingSteamShortcut}
                 >
                   <SteamLogo />
-                  {t("delete_steam_shortcut")}
+                  {t("remove_from_steam_library")}
                 </Button>
               ) : (
                 <Button
@@ -496,7 +496,7 @@ export function GeneralSettingsSection({
                   disabled={creatingSteamShortcut}
                 >
                   <SteamLogo />
-                  {t("create_steam_shortcut")}
+                  {t("add_to_steam_library")}
                 </Button>
               ))}
             {shouldShowCreateStartMenuShortcut && (

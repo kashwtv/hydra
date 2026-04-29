@@ -587,7 +587,9 @@
     "create_steam_shortcut_modal_cancel_button": "Cancel",
     "delete_shortcut_success": "Steam shortcut deleted successfully",
     "delete_shortcut_error": "Failed to delete Steam shortcut",
-    "delete_steam_shortcut": "Delete Steam shortcut"
+    "delete_steam_shortcut": "Delete Steam shortcut",
+    "add_to_steam_library": "Add to Steam library",
+    "remove_from_steam_library": "Remove from Steam library"
   },
   "activation": {
     "title": "Activate Hydra",

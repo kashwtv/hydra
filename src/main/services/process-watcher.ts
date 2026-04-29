@@ -233,19 +233,16 @@ export const watchProcesses = async () => {
 
     let hasProcess = processMap.get(executable)?.has(executablePath) ?? false;
 
-    if (!hasProcess && platform === "darwin") {
+    if (!hasProcess && platform === "darwin" && executable.endsWith(".app")) {
       const appBundleBinary = executable.replace(/\.app$/i, "");
-      hasProcess = (processMap.get(appBundleBinary)?.size ?? 0) > 0;
-
-      if (!hasProcess) {
-        const innerBinaryPath = path.join(
-          executablePath,
-          "Contents",
-          "MacOS",
-          executablePath.split("/").at(-1)?.replace(/\.app$/i, "") ?? ""
-        );
-        hasProcess =
-          processMap.get(appBundleBinary)?.has(innerBinaryPath) ?? false;
+      const candidatePaths = processMap.get(appBundleBinary);
+      if (candidatePaths) {
+        for (const candidatePath of candidatePaths) {
+          if (candidatePath.startsWith(executablePath)) {
+            hasProcess = true;
+            break;
+          }
+        }
       }
     }
 

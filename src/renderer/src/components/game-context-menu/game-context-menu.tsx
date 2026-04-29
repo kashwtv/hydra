@@ -74,6 +74,7 @@ export function GameContextMenu({
   const [collectionSuccessId, setCollectionSuccessId] = useState<string | null>(
     null
   );
+  const [steamShortcutExists, setSteamShortcutExists] = useState(false);
   const {
     collections,
     isLoading: isCollectionsLoading,
@@ -93,6 +94,7 @@ export function GameContextMenu({
     handleToggleFavorite,
     handleCreateShortcut,
     handleCreateSteamShortcut,
+    handleDeleteSteamShortcut,
     handleOpenFolder,
     handleOpenDownloadOptions,
     handleOpenDownloadLocation,
@@ -106,6 +108,27 @@ export function GameContextMenu({
     if (!visible || game.shop === "custom" || !userDetails) return;
     void loadCollections();
   }, [visible, game.shop, loadCollections, userDetails]);
+
+  useEffect(() => {
+    if (!visible || !game.executablePath || game.shop === "custom") {
+      setSteamShortcutExists(false);
+      return;
+    }
+
+    let cancelled = false;
+    window.electron
+      .checkSteamShortcut(game.shop, game.objectId)
+      .then((exists) => {
+        if (!cancelled) setSteamShortcutExists(exists);
+      })
+      .catch(() => {
+        if (!cancelled) setSteamShortcutExists(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, game.shop, game.objectId, game.executablePath]);
 
   useEffect(() => {
     if (!visible) return;
@@ -302,23 +325,37 @@ export function GameContextMenu({
             id: "shortcuts",
             label: t("create_shortcut_simple"),
             icon: <LinkIcon size={16} />,
-            disabled: isDeleting,
-            submenu: [
-              {
-                id: "desktop-shortcut",
-                label: t("create_shortcut_simple"),
-                icon: <LinkIcon size={16} />,
-                onClick: handleCreateShortcut,
-                disabled: isDeleting || creatingShortcut,
-              },
-              {
-                id: "steam-shortcut",
-                label: t("create_steam_shortcut"),
-                icon: <SteamLogo style={{ width: 16, height: 16 }} />,
-                onClick: handleCreateSteamShortcut,
-                disabled: isDeleting || creatingSteamShortcut,
-              },
-            ],
+            disabled: isDeleting || creatingShortcut,
+            onClick: handleCreateShortcut,
+          },
+        ]
+      : []),
+
+    ...(game.executablePath && game.shop !== "custom"
+      ? [
+          {
+            id: "steam-shortcut",
+            label: steamShortcutExists
+              ? t("remove_from_steam_library")
+              : t("add_to_steam_library"),
+            icon: <SteamLogo style={{ width: 16, height: 16 }} />,
+            onClick: async () => {
+              if (steamShortcutExists) {
+                await handleDeleteSteamShortcut();
+              } else {
+                await handleCreateSteamShortcut();
+              }
+              try {
+                const exists = await window.electron.checkSteamShortcut(
+                  game.shop,
+                  game.objectId
+                );
+                setSteamShortcutExists(exists);
+              } catch {
+                /* ignore */
+              }
+            },
+            disabled: isDeleting || creatingSteamShortcut,
           },
         ]
       : []),
