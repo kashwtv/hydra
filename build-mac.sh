@@ -24,28 +24,29 @@ cd "$(dirname "$0")"
 
 # ── 1. Homebrew ───────────────────────────────
 log "Checking Homebrew..."
+# Ensure brew is on PATH (Apple Silicon: /opt/homebrew, Intel: /usr/local)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 if ! command -v brew &>/dev/null; then
   warn "Homebrew not found – installing..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  # Add brew to PATH for Apple Silicon
-  eval "$(/opt/homebrew/bin/brew shellenv)" 2>/dev/null || true
-  eval "$(/usr/local/bin/brew shellenv)" 2>/dev/null || true
+  export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 fi
-ok "Homebrew ready"
+ok "Homebrew $(brew --version | head -1)"
 
 # ── 2. Node.js ────────────────────────────────
 log "Checking Node.js..."
 REQUIRED_NODE="22"
+# Ensure brew-installed node@22 is on PATH
+export PATH="/opt/homebrew/opt/node@22/bin:/usr/local/opt/node@22/bin:$PATH"
 if ! command -v node &>/dev/null || [[ "$(node -e 'process.stdout.write(process.versions.node.split(".")[0])')" -lt "$REQUIRED_NODE" ]]; then
   warn "Node.js $REQUIRED_NODE+ not found – installing via nvm or brew..."
-  if command -v nvm &>/dev/null || [ -s "$HOME/.nvm/nvm.sh" ]; then
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
     # shellcheck disable=SC1090
     source "$HOME/.nvm/nvm.sh" 2>/dev/null || true
     nvm install 22 && nvm use 22
   else
     brew install node@22
-    export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-    export PATH="/usr/local/opt/node@22/bin:$PATH"
+    export PATH="/opt/homebrew/opt/node@22/bin:/usr/local/opt/node@22/bin:$PATH"
   fi
 fi
 ok "Node $(node --version)"
@@ -60,6 +61,7 @@ ok "Yarn $(yarn --version)"
 
 # ── 4. Rust / Cargo ───────────────────────────
 log "Checking Rust..."
+export PATH="$HOME/.cargo/bin:$PATH"
 if ! command -v cargo &>/dev/null; then
   warn "Rust not found – installing via rustup..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
@@ -68,50 +70,59 @@ fi
 source "$HOME/.cargo/env" 2>/dev/null || true
 ok "Rust $(rustc --version)"
 
-# ── 5. Python 3 ───────────────────────────────
-# cx_Freeze 7.x requires Python 3.10+ — skip macOS system Python 3.9
+# ── 5. Python 3.10+ via virtualenv ───────────
+# cx_Freeze 7.x requires Python 3.10+.
+# Homebrew Python 3.13/3.14 is "externally managed" so we use a venv.
 log "Checking Python..."
-PYTHON=""
-for cmd in python3.13 python3.12 python3.11 python3.10; do
-  if command -v "$cmd" &>/dev/null; then
-    PYTHON="$cmd"
+
+# Find a suitable Python 3.10+ binary
+PYTHON_BIN=""
+for cmd in python3.13 python3.12 python3.11 python3.10 \
+           /opt/homebrew/opt/python@3.13/bin/python3 \
+           /opt/homebrew/opt/python@3.12/bin/python3 \
+           /opt/homebrew/opt/python@3.11/bin/python3 \
+           /opt/homebrew/opt/python@3.10/bin/python3; do
+  if command -v "$cmd" &>/dev/null && "$cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
+    PYTHON_BIN="$cmd"
     break
   fi
 done
-# Also check generic python3 if it's 3.10+
-if [[ -z "$PYTHON" ]] && command -v python3 &>/dev/null; then
+# Fallback: check generic python3 for 3.10+
+if [[ -z "$PYTHON_BIN" ]] && command -v python3 &>/dev/null; then
   if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
-    PYTHON="python3"
+    PYTHON_BIN="python3"
   fi
 fi
-if [[ -z "$PYTHON" ]]; then
-  warn "Python 3.10+ not found – installing via brew..."
+if [[ -z "$PYTHON_BIN" ]]; then
+  warn "Python 3.10+ not found – installing python@3.11 via brew..."
   brew install python@3.11
-  export PATH="/opt/homebrew/opt/python@3.11/bin:$PATH"
-  export PATH="/usr/local/opt/python@3.11/bin:$PATH"
-  PYTHON="python3.11"
+  PYTHON_BIN="/opt/homebrew/opt/python@3.11/bin/python3"
 fi
-ok "Python $($PYTHON --version)"
+ok "Found $($PYTHON_BIN --version)"
+
+# Create (or reuse) a virtualenv so pip works on Homebrew Python
+VENV_DIR="$(pwd)/.build-venv"
+if [[ ! -f "$VENV_DIR/bin/python" ]]; then
+  log "Creating Python virtualenv at $VENV_DIR..."
+  "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+PYTHON="$VENV_DIR/bin/python"
+PIP="$VENV_DIR/bin/pip"
+ok "Virtualenv ready ($($PYTHON --version))"
 
 # ── 6. Python dependencies ────────────────────
 log "Installing Python dependencies..."
-$PYTHON -m pip install --upgrade pip --quiet
-if ! $PYTHON -c "import libtorrent" 2>/dev/null; then
-  warn "libtorrent not found for Python – trying brew..."
+"$PIP" install --upgrade pip --quiet
+
+# libtorrent: install brew C library first, then Python binding
+if ! "$PYTHON" -c "import libtorrent" 2>/dev/null; then
+  warn "libtorrent not found – installing via brew + pip..."
   brew install libtorrent-rasterbar 2>/dev/null || true
-  # Try to install python-libtorrent binding via pip
-  $PYTHON -m pip install libtorrent --quiet 2>/dev/null || {
-    warn "pip install libtorrent failed – trying brew python binding..."
-    # Homebrew may ship the binding at a different site-packages path
-    BREW_LIBTORRENT=$(brew --prefix libtorrent-rasterbar 2>/dev/null || true)
-    if [[ -n "$BREW_LIBTORRENT" ]]; then
-      export DYLD_FALLBACK_LIBRARY_PATH="$BREW_LIBTORRENT/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
-    fi
-    $PYTHON -c "import libtorrent" 2>/dev/null || \
-      warn "Could not install libtorrent – the Python RPC (torrent) feature may not work"
-  }
+  "$PIP" install libtorrent --quiet 2>/dev/null || \
+    warn "pip install libtorrent failed – torrent downloads may not work"
 fi
-$PYTHON -m pip install -r requirements.txt --quiet
+
+"$PIP" install -r requirements.txt --quiet
 ok "Python dependencies ready"
 
 # ── 7. Node modules ───────────────────────────
@@ -121,7 +132,7 @@ ok "Node modules ready"
 
 # ── 8. Build Python RPC (cx_Freeze) ──────────
 log "Building Python RPC..."
-$PYTHON python_rpc/setup.py build
+"$PYTHON" python_rpc/setup.py build
 ok "Python RPC built"
 
 # ── 9. Build native Rust addon ────────────────
@@ -131,7 +142,7 @@ ok "Native addon built"
 
 # ── 10. Build Electron app ────────────────────
 log "Building Electron app (Vite + TypeScript)..."
-electron-vite build 2>/dev/null || npx electron-vite build
+npx electron-vite build
 ok "Electron app built"
 
 # ── 11. Package into DMG ─────────────────────
