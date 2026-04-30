@@ -105,7 +105,7 @@ ok "Found $($PYTHON_BIN --version)"
 
 # Create (or reuse) a virtualenv so pip works on Homebrew Python.
 # --system-site-packages lets it see the brew-installed libtorrent binding.
-VENV_DIR="$(pwd)/.build-venv"
+VENV_DIR="$HOME/.hydra-build-venv"
 if [[ ! -f "$VENV_DIR/bin/python" ]]; then
   log "Creating Python virtualenv at $VENV_DIR..."
   "$PYTHON_BIN" -m venv --system-site-packages "$VENV_DIR"
