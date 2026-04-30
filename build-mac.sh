@@ -70,33 +70,36 @@ fi
 source "$HOME/.cargo/env" 2>/dev/null || true
 ok "Rust $(rustc --version)"
 
-# ── 5. Python 3.10+ via virtualenv ───────────
-# cx_Freeze 7.x requires Python 3.10+.
-# Homebrew Python 3.13/3.14 is "externally managed" so we use a venv.
-log "Checking Python..."
+# ── 5. Python 3.11/3.12 via virtualenv ───────
+# cx_Freeze 7.2.3 requires Python 3.10-3.12.
+# Python 3.13+ removed Py_SetPath so cx_Freeze won't compile against it.
+# Always use brew's python@3.11 to guarantee compatibility.
+log "Checking Python (need 3.11 or 3.12 for cx_Freeze 7.x)..."
 
-# Find a suitable Python 3.10+ binary
 PYTHON_BIN=""
-for cmd in python3.13 python3.12 python3.11 python3.10 \
-           /opt/homebrew/opt/python@3.13/bin/python3 \
-           /opt/homebrew/opt/python@3.12/bin/python3 \
-           /opt/homebrew/opt/python@3.11/bin/python3 \
-           /opt/homebrew/opt/python@3.10/bin/python3; do
-  if command -v "$cmd" &>/dev/null && "$cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
-    PYTHON_BIN="$cmd"
+for path in \
+  /opt/homebrew/opt/python@3.11/bin/python3.11 \
+  /opt/homebrew/opt/python@3.12/bin/python3.12 \
+  /usr/local/opt/python@3.11/bin/python3.11 \
+  /usr/local/opt/python@3.12/bin/python3.12; do
+  if [[ -x "$path" ]]; then
+    PYTHON_BIN="$path"
     break
   fi
 done
-# Fallback: check generic python3 for 3.10+
-if [[ -z "$PYTHON_BIN" ]] && command -v python3 &>/dev/null; then
-  if python3 -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null; then
-    PYTHON_BIN="python3"
-  fi
+# Check PATH for 3.11 or 3.12 only (skip 3.13/3.14)
+if [[ -z "$PYTHON_BIN" ]]; then
+  for cmd in python3.11 python3.12; do
+    if command -v "$cmd" &>/dev/null; then
+      PYTHON_BIN="$cmd"
+      break
+    fi
+  done
 fi
 if [[ -z "$PYTHON_BIN" ]]; then
-  warn "Python 3.10+ not found – installing python@3.11 via brew..."
+  warn "Python 3.11 not found – installing via brew..."
   brew install python@3.11
-  PYTHON_BIN="/opt/homebrew/opt/python@3.11/bin/python3"
+  PYTHON_BIN="/opt/homebrew/opt/python@3.11/bin/python3.11"
 fi
 ok "Found $($PYTHON_BIN --version)"
 
